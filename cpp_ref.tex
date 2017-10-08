@@ -1,0 +1,486 @@
+%----------------------------------------------------------
+%
+\documentclass[onecolumn]{book}%
+
+\usepackage{amsmath}%
+\usepackage{amsfonts}%
+\usepackage{amssymb}%
+\usepackage{graphicx}
+\usepackage[latin1]{inputenc}
+\usepackage[french]{babel}
+\usepackage{fontspec}
+\usepackage{makeidx}
+\usepackage{wrapfig}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage[T1]{fontenc}
+%\usepackage{soul}
+\usepackage{framed} % for contrast
+\newcommand{\image}[1]{\hl{IMAGE #1}}
+\newcommand{\imagecap}[2]{
+\begin{figure}
+    \includegraphics{../images/image#1}
+    \caption{#2}
+		\label{fig:#1}
+\end{figure}
+}
+\newcommand{\imagenocap}[1]{\includegraphics{../images/image#1}}
+
+\newcommand{\newdef}[1]{#1\index{#1@\textsc{#1}}}
+\newcommand{\newdefDouble}[2]{#1\index{#2@\textsc{#1}}}
+\newcommand{\newdefDoubleSE}[3]{#2\index{#2@\textsc{#1}!#3}}
+
+\lstset{
+language=C++,
+basicstyle=\ttfamily\scriptsize, % ou Ã§a==> basicstyle=\scriptsize,
+upquote=true,
+%aboveskip={1.5\baselineskip},
+columns=fullflexible,
+showstringspaces=false,
+escapeinside={\%*}{*)},
+numbers=left,
+extendedchars=true,
+breaklines=true,
+showtabs=false,
+showspaces=false,
+showstringspaces=false,
+identifierstyle=\ttfamily,
+keywordstyle=\color[rgb]{0,0,1},
+commentstyle=\color[rgb]{0.133,0.545,0.133},
+stringstyle=\color[rgb]{0.627,0.126,0.941},
+}
+
+%----------------------------------------------------------
+
+%----------------------------------------------------------
+\makeindex
+\begin{document}
+
+\title{R\'ef\'erences C++}
+\author{Damien MESSNER}
+\maketitle
+\tableofcontents
+
+\chapter{Les nouveaut\'es du C++ par rapport au C}
+\section{const}
+Parlons du mot cl\'e \emph{const}\index{const@\textsc{mots cl\'es}!const} qui permet de d\'efinir une variable comme \'etant constante, un peu comme les macros en C.\\
+
+Une fois qu'une variable est d\'efinie comme constante, alors elle ne peut plus changer. Elle ne peut \^etre initialis\'ee qu'à la d\'eclaration:
+\begin{framed}
+\begin{lstlisting}
+int const val = 3; //initialisation à la d\'eclaration
+val = 5; //%*\textbf{\textcolor{red}{error}}*): assignment of read-only variable 'val'
+\end{lstlisting}
+\end{framed}
+
+\'etant constante, elle peut \^etre utilis\'ee pour d\'efinir la taille d'un tableau:
+
+\begin{framed}
+\begin{lstlisting}
+char tab[val] = "AB"; //utilisation de const pour d\'eterminer la taille d'un tableau
+\end{lstlisting}
+\end{framed}
+
+Le mot cl\'e \emph{const} peut aussi \^etre utilis\'e pour les pointeurs. On d\'etermine alors un pointeur pouvant \^etre modifi\'e ou non, ou alors d\'eterminer si le contenu vers lequel il pointe peut \^etre modifi\'e.
+Dans l'exemple qui suit, le contenu est d\'eclar\'e constant, le pointeur peut quant à lui \^etre modifi\'e.
+\begin{framed}
+\begin{lstlisting}
+char const *buffer; //le pointeur peut changer, mais pas le contenu vers lequel il pointe
+buffer = tab; //autoris\'e car le pointeur peut changer
+*buffer = 'C'; //%*\textbf{\textcolor{red}{error}}*): assignment of read-only location '* buffer'
+\end{lstlisting}
+\end{framed}
+Dans l'exemple suivant, c'est l'inverse, le pointeur ne peut \^etre modifi\'e, mais son contenu le peut. Le pointeur doit alors \^etre obligatoirement \^etre initialis\'e à sa d\'eclaration:
+\begin{framed}
+\begin{lstlisting}
+char *const tampon = tab; //le pointeur ne peut plus changer, mais son contenu oui
+tampon++; //%*\textbf{\textcolor{red}{error}}*): increment of read-only variable 'tampon'
+*tampon = 'C'; //on peut modifier le contenu
+\end{lstlisting}
+\end{framed}
+De m\^eme qu'il est possible alors de d\'efinir le pointeur comme \'etant constant ainsi que son contenu:
+\begin{framed}
+\begin{lstlisting}
+char const *const zone = tab; //on ne peut ni modifier le pointeur, ni le contenu
+zone++; //%*\textbf{\textcolor{red}{error}}*): increment of read-only variable 'zone'
+*zone = 'C'; //%*\textbf{\textcolor{red}{error}}*): assignment of read-only location '*(const char*)zone'
+\end{lstlisting}
+\end{framed}
+
+Dans une classe on peut se servir de \emph{\newdefDoubleSE{const}{const}{sur m\'ethode}} pour rendre constant les propri\'et\'es d'une classe dans une m\'ethode de cette m\^eme classe.
+La m\'ethode est d\'efinie \emph{const}, ainsi toutes les propri\'et\'es de cette m\^eme classes sont alors en lecture seule:
+\begin{framed}
+\begin{lstlisting}
+class constClass
+{
+private:
+  int une_var;
+public:
+constClass();
+int constFonc(int) const; //d\'efinition de la m\'ethode const
+};
+
+int constClass::constFonc(int) const
+{
+  return this->une_var;   //%*\textbf{\textcolor{green}{OK}}*): pas de modification de la propri\'et\'e une_var
+  return this->une_var++; //%*\textbf{\textcolor{red}{error}}*): increment of member 'constClass::une_var' in read-only object
+}
+\end{lstlisting}
+\end{framed}
+
+La règle pour savoir ce qui est constant de ce qui ne l'est pas est de ce dire:
+\begin{quotation}
+Ce qui se trouve à gauche est constant
+\end{quotation}
+
+\section{op\'erateur ::}
+Cet op\'erateur est utile, entre autres, quand une variable globale a le m\^eme nom qu'une variable locale. L'op\'erateur \newdef{::} permet alors de pr\'eciser la port\'ee globale.
+\begin{framed}
+\begin{lstlisting}
+int une_var_globale = 12;
+une_var_globale = 50; //variable locale
+::une_var_globale = 25; //variable globale
+\end{lstlisting}
+\end{framed}
+
+\section{les r\'ef\'erences}
+Une r\'ef\'erence est comme son nom l'indique, une \newdefDouble{r\'ef\'erence}{reference} directe vers une autre variable. Elle ne contient pas une valeur, mais la r\'ef\'erence d'une autre variable.
+Elle doit \^etre initialis\'ee que depuis une autre variable, et cela ne peux pas changer.
+\begin{framed}
+\begin{lstlisting}
+int une_var = 45;
+int &varValue = 12; //%*\textbf{\textcolor{red}{error}}*): invalid initialization of non-const reference of type 'int&' from an rvalue of type 'int'
+int &varNoInit; //%*\textbf{\textcolor{red}{error}}*): 'var' declared as reference but not initialized
+int &var = une_var; //initialisation correcte
+\end{lstlisting}
+\end{framed}
+On peut utiliser le mot cl\'e \emph{\newdefDoubleSE{const}{const}{sur r\'ef\'erence}} avec les r\'ef\'erences:
+\begin{framed}
+\begin{lstlisting}
+int const &constVar = une_var; //rf\'erence constante vers une_var
+var++; //incr\'ement possible
+constVar++; //%*\textbf{\textcolor{red}{error}}*): increment of read-only reference ?constVar?
+\end{lstlisting}
+\end{framed}
+Elles sont int\'eressantes pour manipuler des objets larges entres des fonctions. Plutôt que de copier en m\'emoire des objets volumineux, on pr\'ef\'erera les passer par r\'ef\'erence:
+\begin{framed}
+\begin{lstlisting}
+struct monObjet
+{
+  char chaine[50];
+};
+
+monObjet const & testReference(monObjet const &obj)
+{
+  return obj; //la r\'ef\'erence, non une copie, est pass\'ee en paramètre
+}
+\end{lstlisting}
+\end{framed}
+\section{R-value}
+Il semblerait que les \newdef{r-value} ne fonctionnent que depuis C++11.
+\section{Les templates}
+Un \newdef{template} permet de construire une classe ou une m\'ethode sans mentionner le type et ainsi les rendre g\'en\'eriques.
+La construction pour une classe est la suivante:
+\begin{framed}
+\begin{lstlisting}
+template<typename T>
+class monTemplate
+{
+public:
+  T monType;
+monTemplate(const T& val = T());
+~monTemplate();
+};
+
+template<typename T>
+monTemplate<T>::monTemplate(const T& unType) : monType(unType)
+{
+  std::cout << "mon constructeur:" << monType << std::endl;
+}
+
+
+template<typename T>
+monTemplate<T>::~monTemplate()
+{
+  std::cout << "mon destructeur" << std::endl;
+}
+\end{lstlisting}
+\end{framed}
+\begin{itemize}
+\item Pour des raisons pratiques, il est pr\'ef\'erable de d\'eclarer le tout directement dans un fichier d'ent\^ete .h.
+\item Lors de la d\'efinition d'un template, le mot cl\'e utilis\'e pour identifier le type peut \^etre \emph{typename} ou alors \emph{class}. Les deux ont la m\^eme signification.
+\end{itemize}
+Un template peut avoir plusieurs paramètre:
+\begin{framed}
+\begin{lstlisting}
+template <typename T, typename U, typename V>
+std::string retourAffiche(T un, U deux, V trois)
+{
+ /*  */
+ return str;
+}
+\end{lstlisting}
+\end{framed}
+Il est possible d'appeler une fonction template depuis une autre fonction template:
+\begin{framed}
+\begin{lstlisting}
+template <typename T>
+std::string convertMe(T aconvertir)
+{
+  std::ostringstream oss;
+  
+  oss << aconvertir;
+  return oss.str();
+}
+
+//3 paramètres
+template <typename T, typename U, typename V>
+std::string retourAffiche(T un, U deux, V trois)
+{
+  std::string str = "";
+  str += un;
+  str += convertMe<U>(deux); //on appelle la m\'ethode convertMe en pr\'ecisant le type U, car on ne sait pas à l'avance quel type il sera
+  str += convertMe<V>(trois); // m\^eme chose
+  
+  return str;
+}
+\end{lstlisting}
+\end{framed}
+\newdefDoubleSE{const, mot cl\'e}{const}{sur r\'ef\'erence}
+Il est facile d'utiliser l'op\'erateur \newdef{<<} avec un \emph{\newdefDoubleSE{ostringstream}{ostringstream}{conversion de type}} afin d'effectuer une conversion de type\index{m\'ethodes@\textsc{m\'ethodes}!conversion de type}:
+\begin{framed}
+\begin{lstlisting}
+//m\'ethode de conversion d'un type vers une chaine
+template <typename T>
+std::string convertMe(T aconvertir)
+{
+  std::ostringstream oss;
+  //flux depuis un type donn\'ee, vers un std::string
+  oss << aconvertir;
+  return oss.str();
+}
+\end{lstlisting}
+\end{framed}
+Un typename peut aussi \^etre utilis\'e en retour:
+\begin{framed}
+\begin{lstlisting}
+//m\'ethode qui va convertir un type vers un autre du moment que les deux savent utiliser l'op\'erateur >> ou <<
+template <typename T, typename V>
+V convertMe(T aconvertir)
+{
+  V destination;
+  std::istringstream iss(convertMe<T>(aconvertir) );
+  iss >> destination;
+  
+  return destination;
+}
+\end{lstlisting}
+\end{framed}
+Cette m\'ethode permet de faire une conversion de deux types diff\'erents \index{m\'ethodes@\textsc{m\'ethodes}!conversion de deux types diff\'erents} à l'aide de la classe \newdefDoubleSE{istringstream}{istringstream}{conversion de type}.
+\section{auto}
+\emph{Disponible à partir de C++11}
+L'op\'erateur \newdef{auto} permet une meilleure lisibilit\'e de code en simplifiant l'\'ecriture des type complexe. LE travail revient au compilateur qui d\'etermine lui m\^eme type en faisant de l'inf\'erence de type.
+\begin{framed}
+\begin{lstlisting}
+auto sortie  = convertMe<std::string, float>("123.654"); //la fonction convertMe renvoie un float, auto sera alors un float
+std::cout << "auto sortie:" << sortie << std::endl;
+\end{lstlisting}
+\end{framed}
+Son utilisation est surtout pratique lors des it\'erations\index{iterator@\textsc{iterator}!avec auto}. Supposons qu'on ait la liste suivante:
+\begin{framed}
+\begin{lstlisting}
+std::list<int> liste;
+  
+liste.push_back(10);
+liste.push_back(20);
+liste.push_back(56);
+\end{lstlisting}
+\end{framed}
+La parcourir avec la m\'ethode C++98 se r\'ev\'elerait à ceci:
+\begin{framed}
+\begin{lstlisting}
+//avec toute la d\'efinition
+std::list<int>::iterator it = liste.begin();
+while(it != liste.end())
+{
+    std::cout << "elem:" << *it << std::endl;
+    it++;
+}
+\end{lstlisting}
+\end{framed}
+Ici, on a une liste assez simple et la d\'efinition de l'it\'erateur est d\'ejà compliqu\'e. Avec l'op\'erateur \emph{auto} ça donne ceci:
+\begin{framed}
+\begin{lstlisting}
+//avec auto
+auto it = liste.begin();
+while(it != liste.end())
+{
+    std::cout << "elem:" << *it << std::endl;
+    it++;
+}
+\end{lstlisting}
+\end{framed}
+Cette fois-ci, c'est le compilateur qui se charge de d\'eterminer la type de l'it\'erateur. Et le code est beaucoup plus lisible.
+\chapter{Le c++ dans toute sa splendeur}
+\section{Initialisation avec accolade}
+L'initialisation d'une variable ou d'une classe peut se faire avec les parenthèses, avec une initialisation par valeur ou alors avec des accolades.\\
+Si elles permettent des initialisations, elles servent aussi pour l'initialisation de listes.
+\begin{framed}
+\begin{lstlisting}
+//les d\'eclarations suivantes ont le m\^eme r\'esultat
+int i = 20; //d\'eclaration avec initilisation
+int j(30);  //m\^eme chose mais avec des parenthèses
+int k{40};  //m\^eme chose mais avec des accolades
+\end{lstlisting}
+\end{framed}
+Il est possible d'utiliser la m\^eme syntaxe dans une classe pour les membres non statiques. Mais dans ce cas là, les d\'eclarations avec parenthèse sont interdites:
+\begin{framed}
+\begin{lstlisting}
+class c7Class1
+{
+private:
+    int c1=15;     //OK
+    int c2{25};    //OK
+    //int c3(35);  //KO: pas de parenthèses
+    
+    ...
+    
+};
+\end{lstlisting}
+\end{framed}
+Si on rajoute les \'el\'ements suivants à la classe pr\'ec\'edente:
+\begin{framed}
+\begin{lstlisting}
+public:
+    c7Class1() {}
+    c7Class1(int val1, int val2):c1(val1),c2(val2)
+    {
+        
+    }
+    void printContenu(void)
+    {
+        cout<<"c1:"<<c1<<", c2:"<<c2<<endl;
+    }
+\end{lstlisting}
+\end{framed}
+Et que l'on instancie de cette manière:
+\begin{framed}
+\begin{lstlisting}
+//d\'eclaration avec constructeur par d\'efaut
+c7Class1* c7class1 = new c7Class1();
+c7class1->printContenu();  //c1:15, c2:25
+//d\'eclaration avec autre constructeur
+c7Class1* c7class2 = new c7Class1(6, 7);
+c7class2->printContenu();  //c1:6, c2:7
+//d\'eclaration sans new
+c7Class1 c7class3(45, 35);
+c7class3.printContenu();   //c1:45, c2:35
+//d\'eclaration avec accolades
+c7Class1 c7class4{87, 97};
+c7class4.printContenu();   //c1:87, c2:97
+\end{lstlisting}
+\end{framed}
+On constate alors que chacune de ces d\'eclarations est valable.\\
+Mais alors pourquoi utiliser une syntaxe suppl\'ementaire?\\
+Pour deux raisons:
+\begin{itemize}
+\item Interdire la conversion implicite
+\item Permettre l'initialisation par liste
+\end{itemize}
+Pour la conversion implicite:
+\begin{framed}
+\begin{lstlisting}
+//d\'eclaration avec double
+c7Class1 c7class5(45.5f, 85.5f); //appel du constructure (int, int) alors que l'on passe des doubles OK
+c7class5.printContenu();
+//d\'eclaration avec double mais entre accolade
+//c7Class1 c7class6{12.0, 42.5}; //%*\textbf{\textcolor{red}{error}}*), pas de conversion possible entre double et int dans ce cas là
+\end{lstlisting}
+\end{framed}
+Pour l'initialisation par liste:
+\begin{framed}
+\begin{lstlisting}
+//Dans la ligne suivante, on cr\'e\'e un vecteur avec 3 \'el\'ements entier
+vector<int> vint{1, 2, 5};
+\end{lstlisting}
+\end{framed}
+\section{Utilisation de nullptr au lieu de NULL}
+\index{nullptr@\textsc{mots cl\'es}!nullptr}
+Il est fr\'equent d'utiliser NULL pour identifier un pointeur nul. Cependant la conversion de type dans ces cas là peut \'echouer et mal induire le compilateur.\\
+Consid\'erons les fonctions suivantes:
+\begin{framed}
+\begin{lstlisting}
+void fonc(int)
+{
+    cout<<"fonc int"<<endl;
+}
+
+void fonc(bool)
+{
+    cout<<"fonc bool"<<endl;
+}
+
+void fonc(void*)
+{
+    cout<<"fonc void*"<<endl;
+}
+\end{lstlisting}
+\end{framed}
+Ceux sont toutes les m\^emes surcharg\'ees avec un type diff\'erent.\\
+Voici ce qu'on obtient avec les appels suivants:
+\begin{framed}
+\begin{lstlisting}
+fonc(0);        //OK: appel fonc(int)
+fonc(NULL);     //KO: appel fonc(int)
+fonc((void*)0); //OK: appel fonc(void*)
+fonc(nullptr);  //OK: appel fonc(void*)
+\end{lstlisting}
+\end{framed}
+On constate que lorsque l'on souhaitait appeler syst\'ematiquement les fonctions "void*", cela n'a jamais \'et\'e le cas.\\
+Maintenant plus grave, ce qui ne provoque qu'un warning jusque là provoque une erreur si l'on passe par un template:
+\begin{framed}
+\begin{lstlisting}
+//cette fonction attend un pointeur int* et rien d'autre
+void fonc_ptr(int* ptr)
+{
+    if(ptr == nullptr)
+    {
+        cout<<"pointeur nul"<<endl;
+    }
+    else
+    {
+        cout<<"valeur:"<<*ptr<<endl;
+    }
+    
+}
+
+//le template va appeler cette fonction
+template<typename PTR>
+void template_fonc(PTR ptr)
+{
+    fonc_ptr(ptr);
+}
+\end{lstlisting}
+\end{framed}
+Et maintenant avec les appels suivants:
+\begin{framed}
+\begin{lstlisting}
+//notre variable que l'on va afficher
+int val=45;
+template_fonc(0);       //%*\textbf{\textcolor{red}{error}}*): Le template transmet un entier, incompatible avec fonc_ptr
+template_fonc(NULL);    //%*\textbf{\textcolor{red}{error}}*): Exactement le m\^eme problème
+template_fonc(nullptr); //OK: nullptr est convertible en n'importe quel pointeur, affiche "pointeur nul"
+template_fonc(&val);    //OK: on transmet bien un pointeur sur un entier, affiche "45"
+\end{lstlisting}
+\end{framed}
+\chapter{La STL}
+\section{Les it\'erateurs}
+\index{iterator@\textsc{mots cl\'es}!iterator}
+\section{les threads}
+voir ce lien plus tard: https://solarianprogrammer.com/2012/02/27/cpp-11-thread-tutorial-part-2/?ref=dzone
+\printindex
+
+\end{document}
